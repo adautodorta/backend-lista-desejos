@@ -1,13 +1,43 @@
-from flask import Flask, jsonify, request
+import os
+import jwt
+from functools import wraps
+from flask import Flask, jsonify, request, g
 from flask_restful import Api, Resource
+from flask_cors import CORS
 from flasgger import Swagger
+from dotenv import load_dotenv
 import lista_desejos
+
+load_dotenv()
 
 app = Flask(__name__)
 api = Api(app)
 swagger = Swagger(app)
+CORS(app)
+
+def jwt_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split(" ")[1]
+        if not token:
+            return {'message': 'Token de autenticação ausente!'}, 401
+        try:
+            secret = os.getenv('SUPABASE_JWT_SECRET')
+            data = jwt.decode(token, secret, algorithms=['HS256'])
+            g.user_id = data['sub']
+        except jwt.ExpiredSignatureError:
+            return {'message': 'Token expirou!'}, 401
+        except jwt.InvalidTokenError:
+            return {'message': 'Token inválido!'}, 401
+        
+        return f(*args, **kwargs)
+    return decorated
 
 class ListaDesejos(Resource):
+    method_decorators = [jwt_required]
+
     def get(self):
         """
         Busca todos os itens da lista de desejos
@@ -48,15 +78,19 @@ class ListaDesejos(Resource):
                                         description: Data de criação
         """
         search_term = request.args.get('search')
+
+        user_id = g.user_id
         
         if search_term:
-            items = lista_desejos.search_items(search_term)
+            items = lista_desejos.search_items(search_term, user_id)
         else:
-            items = lista_desejos.get_all_items()
+            items = lista_desejos.get_all_items(user_id)
         
         return {"items": items}, 200
 
 class ItemDesejo(Resource):
+    method_decorators = [jwt_required]
+
     def get(self, item_id):
         """
         Busca um item específico por ID
@@ -75,7 +109,7 @@ class ItemDesejo(Resource):
             404:
                 description: Item não encontrado
         """
-        item = lista_desejos.get_item_by_id(item_id)
+        item = lista_desejos.get_item_by_id(item_id, user_id=g.user_id)
         
         if item:
             return item, 200
@@ -128,6 +162,7 @@ class ItemDesejo(Resource):
         
         success = lista_desejos.update_item(
             item_id=item_id,
+            user_id=g.user_id,
             nome=data.get('nome'),
             valor=data.get('valor'),
             link=data.get('link')
@@ -160,7 +195,7 @@ class ItemDesejo(Resource):
         if not existing_item:
             return {"message": "Item não encontrado"}, 404
         
-        success = lista_desejos.delete_item(item_id)
+        success = lista_desejos.delete_item(item_id, user_id=g.user_id)
         
         if success:
             return {"message": "Item removido com sucesso"}, 200
@@ -168,6 +203,8 @@ class ItemDesejo(Resource):
             return {"message": "Erro ao remover item"}, 500
 
 class AdicionarItem(Resource):
+    method_decorators = [jwt_required]
+
     def post(self):
         """
         Adiciona um novo item à lista de desejos
@@ -219,8 +256,9 @@ class AdicionarItem(Resource):
         
         success = lista_desejos.create_item(
             nome=data['nome'],
-            valor=valor,
-            link=data['link']
+            valor=float(data['valor']),
+            link=data['link'],
+            user_id=g.user_id
         )
         
         if success:
