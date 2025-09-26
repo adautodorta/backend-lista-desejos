@@ -25,6 +25,7 @@ def jwt_required(f):
             return {'message': 'Token de autenticação ausente!'}, 401
         try:
             secret = os.getenv('SUPABASE_JWT_SECRET')
+            print(f"--- DEBUG: Verificando token com o secret: '{secret}' ---")
             data = jwt.decode(token, secret, algorithms=['HS256'])
             g.user_id = data['sub']
         except jwt.ExpiredSignatureError:
