@@ -9,30 +9,58 @@ from dotenv import load_dotenv
 import lista_desejos
 
 load_dotenv()
-
 app = Flask(__name__)
 api = Api(app)
-swagger = Swagger(app)
+
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "API da Lista de Desejos",
+        "description": "API para gerenciar uma lista de desejos de produtos.",
+        "version": "1.0.0"
+    },
+    "securityDefinitions": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Autenticação JWT usando o esquema Bearer. Exemplo: \"Authorization: Bearer {token}\""
+        }
+    },
+    "security": [
+        {
+            "Bearer": []
+        }
+    ]
+}
+
+swagger = Swagger(app, template=swagger_template)
 CORS(app)
+
+SECRET = os.getenv("SUPABASE_JWT_SECRET")
 
 def jwt_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = None
-        if 'Authorization' in request.headers:
-            token = request.headers['Authorization'].split(" ")[1]
-        if not token:
-            return {'message': 'Token de autenticação ausente!'}, 401
+        auth_header = request.headers.get("Authorization", None)
+
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return {"message": "Token ausente ou mal formatado"}, 401
+
+        token = auth_header.split(" ")[1]
+
         try:
-            secret = os.getenv('SUPABASE_JWT_SECRET')
-            print(f"--- DEBUG: Verificando token com o secret: '{secret}' ---")
-            data = jwt.decode(token, secret, algorithms=['HS256'])
-            g.user_id = data['sub']
-        except jwt.ExpiredSignatureError:
-            return {'message': 'Token expirou!'}, 401
-        except jwt.InvalidTokenError:
-            return {'message': 'Token inválido!'}, 401
-        
+            data = jwt.decode(
+                token,
+                SECRET,
+                algorithms=["HS256"],
+                audience="authenticated"
+            )
+            g.user_id = data["sub"]
+        except Exception as e:
+            print("Erro no decode:", type(e).__name__, str(e))
+            return {"message": "Token inválido!"}, 401
+
         return f(*args, **kwargs)
     return decorated
 
