@@ -38,7 +38,7 @@ def create_item(nome: str, valor: float, link: str, user_id: str) -> bool:
             "link": link,
             "user_id": user_id
         }
-        response = supabase.table(TABLE_NAME).insert(data).execute()
+        supabase.table(TABLE_NAME).insert(data).execute()
         return True
     except Exception as e:
         print(f"Erro ao criar item: {e}")
@@ -61,7 +61,7 @@ def update_item(item_id: str, user_id: str, nome: str = None, valor: float = Non
         if not update_data:
             return False
             
-        rresponse = supabase.table(TABLE_NAME).update(update_data).eq("id", item_id).eq("user_id", user_id).execute()
+        supabase.table(TABLE_NAME).update(update_data).eq("id", item_id).eq("user_id", user_id).execute()
         return True
     except Exception as e:
         print(f"Erro ao atualizar item: {e}")
@@ -72,7 +72,7 @@ def delete_item(item_id: str, user_id: str) -> bool:
     Remove um item da lista de desejos
     """
     try:
-        response = supabase.table(TABLE_NAME).delete().eq("id", item_id).eq("user_id", user_id).execute()
+        supabase.table(TABLE_NAME).delete().eq("id", item_id).eq("user_id", user_id).execute()
         return True
     except Exception as e:
         print(f"Erro ao deletar item: {e}")

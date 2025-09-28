@@ -185,7 +185,7 @@ class ItemDesejo(Resource):
         if not data:
             return {"message": "Dados não fornecidos"}, 400
         
-        existing_item = lista_desejos.get_item_by_id(item_id)
+        existing_item = lista_desejos.get_item_by_id(item_id, user_id=g.user_id)
         if not existing_item:
             return {"message": "Item não encontrado"}, 404
         
@@ -220,7 +220,7 @@ class ItemDesejo(Resource):
             404:
                 description: Item não encontrado
         """
-        existing_item = lista_desejos.get_item_by_id(item_id)
+        existing_item = lista_desejos.get_item_by_id(item_id, user_id=g.user_id)
         if not existing_item:
             return {"message": "Item não encontrado"}, 404
         
