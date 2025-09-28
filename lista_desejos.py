@@ -38,10 +38,14 @@ def create_item(nome: str, valor: float, link: str, user_id: str) -> bool:
             "link": link,
             "user_id": user_id
         }
-        supabase.table(TABLE_NAME).insert(data).execute()
-        return True
+        response = supabase.table(TABLE_NAME).insert(data).execute()
+
+        if response.data:
+            return True
+        return False
+    
     except Exception as e:
-        print(f"Erro ao criar item: {e}")
+        print(f"Exceção ao criar item: {e}")
         return False
 
 def update_item(item_id: str, user_id: str, nome: str = None, valor: float = None, link: str = None) -> bool:
