@@ -102,9 +102,6 @@ class ListaDesejos(Resource):
                                     link:
                                         type: string
                                         description: Link do produto
-                                    created_at:
-                                        type: string
-                                        description: Data de criação
         """
         search_term = request.args.get('search')
 

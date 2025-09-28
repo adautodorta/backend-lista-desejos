@@ -71,7 +71,6 @@ CREATE TABLE lista_desejos (
     valor INTEGER NOT NULL, -- Valor em centavos
     link TEXT,
     user_id UUID NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ```
 
